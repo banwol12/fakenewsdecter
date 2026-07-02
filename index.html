@@ -1,0 +1,1749 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Veritas Shield - 실시간 뉴스 팩트체커</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --panel-bg: rgba(17, 24, 39, 0.7);
+            --panel-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            --primary: #3b82f6;
+            --primary-glow: rgba(59, 130, 246, 0.35);
+            --success: #10b981;
+            --success-glow: rgba(16, 185, 129, 0.35);
+            --warning: #f59e0b;
+            --warning-glow: rgba(245, 158, 11, 0.35);
+            --danger: #ef4444;
+            --danger-glow: rgba(239, 68, 68, 0.35);
+            --font-main: 'Outfit', 'Noto Sans KR', sans-serif;
+            --sidebar-width: 400px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background-image: 
+                radial-gradient(at 10% 20%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
+                radial-gradient(at 90% 80%, rgba(16, 185, 129, 0.1) 0px, transparent 50%);
+        }
+
+        /* Header Styles */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--panel-border);
+            z-index: 10;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .brand svg {
+            width: 32px;
+            height: 32px;
+            color: var(--primary);
+            filter: drop-shadow(0 0 8px var(--primary-glow));
+        }
+
+        .brand h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            background: linear-gradient(to right, #fff, #9ca3af);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand span {
+            font-size: 0.75rem;
+            background: rgba(59, 130, 246, 0.15);
+            color: var(--primary);
+            padding: 0.15rem 0.5rem;
+            border-radius: 9999px;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            font-weight: 500;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .btn-settings {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--panel-border);
+            color: var(--text-primary);
+            padding: 0.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .btn-settings:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Settings Slide Down */
+        .settings-panel {
+            background: rgba(15, 23, 42, 0.95);
+            border-bottom: 1px solid var(--panel-border);
+            padding: 1.5rem 2rem;
+            display: none;
+            flex-direction: column;
+            gap: 1rem;
+            z-index: 9;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .input-group label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .input-group input, .input-group select {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            padding: 0.75rem;
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+
+        .input-group input:focus, .input-group select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px var(--primary-glow);
+        }
+
+        .input-with-btn {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .input-with-btn input {
+            flex-grow: 1;
+        }
+
+        .btn-save {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0.5rem 1.25rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.2s ease;
+        }
+
+        .btn-save:hover {
+            background: #2563eb;
+        }
+
+        /* Main Workspace Layout */
+        .workspace {
+            display: flex;
+            flex-grow: 1;
+            height: calc(100vh - 65px);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Chat Area (Left Column) */
+        .chat-section {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            border-right: 1px solid var(--panel-border);
+            background: rgba(10, 15, 30, 0.2);
+            position: relative;
+        }
+
+        .chat-history {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* Suggestions Area */
+        .welcome-view {
+            max-width: 600px;
+            margin: auto;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            animation: fadeIn 0.6s ease;
+        }
+
+        .welcome-view h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff 30%, #9ca3af 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .welcome-view p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .suggestions {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .suggestion-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--panel-border);
+            border-radius: 12px;
+            padding: 1rem;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .suggestion-card:hover {
+            background: rgba(59, 130, 246, 0.08);
+            border-color: rgba(59, 130, 246, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .suggestion-icon {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--primary);
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .suggestion-content h4 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 0.15rem;
+        }
+
+        .suggestion-content p {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* Chat Bubbles */
+        .message {
+            display: flex;
+            gap: 1rem;
+            max-width: 80%;
+            animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .message.assistant {
+            align-self: flex-start;
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+
+        .message.user .avatar {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        .message.assistant .avatar {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+            border: 1px solid var(--panel-border);
+        }
+
+        .bubble {
+            padding: 1rem 1.25rem;
+            border-radius: 16px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            position: relative;
+        }
+
+        .message.user .bubble {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            border-top-right-radius: 4px;
+            color: white;
+        }
+
+        .message.assistant .bubble {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--panel-border);
+            border-top-left-radius: 4px;
+            backdrop-filter: blur(4px);
+        }
+
+        .bubble p {
+            margin-bottom: 0.5rem;
+        }
+        .bubble p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Message Loading State */
+        .loading-bubble {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            color: var(--text-secondary);
+        }
+
+        .loading-spinner-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-status-text {
+            font-size: 0.85rem;
+            font-weight: 500;
+            letter-spacing: -0.01em;
+            animation: pulse 1.5s infinite;
+        }
+
+        /* Chat Input Bar */
+        .chat-input-wrapper {
+            padding: 1.5rem 2rem;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            border-top: 1px solid var(--panel-border);
+        }
+
+        .chat-input-container {
+            display: flex;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid var(--panel-border);
+            border-radius: 12px;
+            padding: 0.5rem 0.75rem 0.5rem 1rem;
+            gap: 0.75rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .chat-input-container:focus-within {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px var(--primary-glow);
+        }
+
+        .chat-input {
+            flex-grow: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            font-size: 0.95rem;
+            padding: 0.5rem 0;
+            resize: none;
+            max-height: 120px;
+            min-height: 24px;
+        }
+
+        .btn-send {
+            background: var(--primary);
+            border: none;
+            color: white;
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .btn-send:hover {
+            background: #2563eb;
+            transform: scale(1.05);
+        }
+
+        .btn-send svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Dashboard Area (Right Column) */
+        .dashboard-section {
+            width: var(--sidebar-width);
+            flex-shrink: 0;
+            height: 100%;
+            background: var(--panel-bg);
+            backdrop-filter: blur(20px);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            padding: 2rem;
+            gap: 2rem;
+            animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .dashboard-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--panel-border);
+            padding-bottom: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .dashboard-title svg {
+            width: 20px;
+            height: 20px;
+            color: var(--primary);
+        }
+
+        .dashboard-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--panel-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dashboard-card.status-danger {
+            background: rgba(239, 68, 68, 0.08) !important;
+            border: 2px solid rgba(239, 68, 68, 0.7) !important;
+            box-shadow: 0 0 35px rgba(239, 68, 68, 0.35) !important;
+            animation: pulseDanger 2.5s infinite ease-in-out;
+        }
+
+        .dashboard-card.status-success {
+            background: rgba(16, 185, 129, 0.08) !important;
+            border: 2px solid rgba(16, 185, 129, 0.7) !important;
+            box-shadow: 0 0 35px rgba(16, 185, 129, 0.35) !important;
+            animation: pulseSuccess 2.5s infinite ease-in-out;
+        }
+
+        .dashboard-card.status-warning {
+            background: rgba(245, 158, 11, 0.08) !important;
+            border: 2px solid rgba(245, 158, 11, 0.7) !important;
+            box-shadow: 0 0 35px rgba(245, 158, 11, 0.35) !important;
+            animation: pulseWarning 2.5s infinite ease-in-out;
+        }
+
+        @keyframes pulseDanger {
+            0%, 100% { box-shadow: 0 0 25px rgba(239, 68, 68, 0.25); border-color: rgba(239, 68, 68, 0.5) !important; }
+            50% { box-shadow: 0 0 45px rgba(239, 68, 68, 0.5); border-color: rgba(239, 68, 68, 1) !important; }
+        }
+
+        @keyframes pulseSuccess {
+            0%, 100% { box-shadow: 0 0 25px rgba(16, 185, 129, 0.25); border-color: rgba(16, 185, 129, 0.5) !important; }
+            50% { box-shadow: 0 0 45px rgba(16, 185, 129, 0.5); border-color: rgba(16, 185, 129, 1) !important; }
+        }
+
+        @keyframes pulseWarning {
+            0%, 100% { box-shadow: 0 0 25px rgba(245, 158, 11, 0.25); border-color: rgba(245, 158, 11, 0.5) !important; }
+            50% { box-shadow: 0 0 45px rgba(245, 158, 11, 0.5); border-color: rgba(245, 158, 11, 1) !important; }
+        }
+
+        .status-alert-tag {
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            text-align: center;
+            display: none;
+            margin-bottom: 0.25rem;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .status-alert-tag.danger {
+            display: block;
+            background: rgba(239, 68, 68, 0.25);
+            color: #ff9e9e;
+            border: 1px solid rgba(239, 68, 68, 0.45);
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.2);
+        }
+
+        .status-alert-tag.success {
+            display: block;
+            background: rgba(16, 185, 129, 0.25);
+            color: #9effd8;
+            border: 1px solid rgba(16, 185, 129, 0.45);
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+        }
+
+        .status-alert-tag.warning {
+            display: block;
+            background: rgba(245, 158, 11, 0.25);
+            color: #ffe89e;
+            border: 1px solid rgba(245, 158, 11, 0.45);
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
+        }
+
+        /* Circular Gauge Styles */
+        .gauge-container {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .svg-gauge {
+            position: relative;
+            width: 110px;
+            height: 110px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .svg-gauge svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .gauge-bg {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.05);
+            stroke-width: 8;
+        }
+
+        .gauge-progress {
+            fill: none;
+            stroke-width: 8;
+            stroke-linecap: round;
+            stroke-dasharray: 283; /* 2 * PI * 45 */
+            stroke-dashoffset: 283;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+            transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1), stroke 1s ease, filter 1s ease;
+        }
+
+        .gauge-text {
+            position: absolute;
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.05em;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .gauge-unit {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            margin-top: -2px;
+        }
+
+        .gauge-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            flex-grow: 1;
+        }
+
+        .gauge-label {
+            font-size: 1.25rem;
+            font-weight: 700;
+            transition: color 0.5s ease;
+        }
+
+        .gauge-desc {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .reasons-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            list-style: none;
+            margin-top: 0.25rem;
+        }
+
+        .reasons-list li {
+            position: relative;
+            padding-left: 1.25rem;
+            line-height: 1.4;
+        }
+
+        .reasons-list li::before {
+            content: "•";
+            position: absolute;
+            left: 0.25rem;
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        /* Bias Spectrum Styles */
+        .bias-bar-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .bias-track-container {
+            position: relative;
+            height: 16px;
+            margin: 0.5rem 0;
+        }
+
+        .bias-track {
+            height: 8px;
+            border-radius: 9999px;
+            background: linear-gradient(to right, #3b82f6 0%, rgba(255, 255, 255, 0.1) 50%, #ef4444 100%);
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 4px;
+        }
+
+        .bias-marker {
+            position: absolute;
+            top: 0px;
+            left: 50%;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: white;
+            border: 3px solid var(--bg-color);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+            transform: translateX(-50%);
+            transition: left 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .bias-axis-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .bias-axis-labels span.active-left {
+            color: #3b82f6;
+            text-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+        }
+
+        .bias-axis-labels span.active-right {
+            color: #ef4444;
+            text-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+        }
+
+        .bias-axis-labels span.active-neutral {
+            color: white;
+        }
+
+        .bias-description {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* Opposing Viewpoints Styles */
+        .opposing-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .opposing-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--panel-border);
+            border-radius: 12px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            transition: all 0.2s ease;
+        }
+
+        .opposing-card:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .opposing-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .opposing-source {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--warning);
+            background: rgba(245, 158, 11, 0.1);
+            padding: 0.2rem 0.5rem;
+            border-radius: 6px;
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+
+        .opposing-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            line-height: 1.4;
+            color: var(--text-primary);
+        }
+
+        .opposing-summary {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .opposing-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.25rem;
+        }
+
+        .btn-search {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.35rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            padding: 0.4rem 0.75rem;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .btn-search:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.25);
+            color: var(--text-primary);
+        }
+
+        .btn-search svg {
+            width: 12px;
+            height: 12px;
+        }
+
+        /* Empty States */
+        .empty-dashboard {
+            text-align: center;
+            color: var(--text-muted);
+            margin: auto 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            padding: 2rem 1rem;
+        }
+
+        .empty-dashboard svg {
+            width: 48px;
+            height: 48px;
+            opacity: 0.3;
+        }
+
+        .empty-dashboard p {
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        /* Markdown bubble elements rendering styling */
+        .markdown-content ul, .markdown-content ol {
+            margin-left: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .markdown-content li {
+            margin-bottom: 0.25rem;
+        }
+        .markdown-content strong {
+            color: #fff;
+            font-weight: 600;
+        }
+        .markdown-content code {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0.1rem 0.3rem;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.85em;
+        }
+
+        /* Mobile View Toggle Buttons */
+        .dashboard-toggle {
+            display: none;
+            position: fixed;
+            bottom: 5.5rem;
+            right: 1.5rem;
+            z-index: 8;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 56px;
+            height: 56px;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
+            cursor: pointer;
+        }
+
+        /* Responsive Breakpoints */
+        @media (max-width: 900px) {
+            .workspace {
+                flex-direction: column;
+            }
+
+            .dashboard-section {
+                position: absolute;
+                right: 0;
+                top: 0;
+                bottom: 0;
+                width: 100%;
+                z-index: 5;
+                display: none;
+            }
+
+            .dashboard-section.active {
+                display: flex;
+            }
+
+            .dashboard-toggle {
+                display: flex;
+            }
+
+            .message {
+                max-width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            <div>
+                <h1>AI Veritas Shield</h1>
+            </div>
+            <span>FACT-CHECKER</span>
+        </div>
+        <div class="controls">
+            <button class="btn-settings" id="settingsToggleBtn" title="설정">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Slide Down Settings -->
+    <div class="settings-panel" id="settingsPanel">
+        <div class="settings-grid">
+            <div class="input-group">
+                <label for="apiKey">Gemini API Key</label>
+                <div class="input-with-btn">
+                    <input type="password" id="apiKey" placeholder="AIzaSy...">
+                </div>
+            </div>
+        </div>
+        <div style="display: flex; justify-content: flex-end; margin-top: 0.5rem;">
+            <button class="btn-save" id="saveSettingsBtn">설정 저장</button>
+        </div>
+    </div>
+
+    <!-- Main Workspace -->
+    <div class="workspace">
+        <!-- Chat Container -->
+        <section class="chat-section">
+            <div class="chat-history" id="chatHistory">
+                <!-- Welcome view shown when chat is empty -->
+                <div class="welcome-view" id="welcomeView">
+                    <h2>뉴스 팩트 및 편향 판독기</h2>
+                    <p>
+                        검증하고 싶은 뉴스 기사 본문, 소셜 미디어 상의 소문 또는 의심스러운 소식을 입력해 주세요. 
+                        AI가 다각도로 분석하여 진위 확률과 정치적/이념적 편향성을 시각화하고 상반된 기사를 추천해 드립니다.
+                    </p>
+                    <div class="suggestions">
+                        <div class="suggestion-card" onclick="selectSuggestion('특정 보건 단체가 백신에 나노 칩을 심었다는 소식 팩트체크해줘')">
+                            <div class="suggestion-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                                </svg>
+                            </div>
+                            <div class="suggestion-content">
+                                <h4>음모론 검증</h4>
+                                <p>"특정 보건 단체가 백신에 나노 칩을 심었다는 소식..."</p>
+                            </div>
+                        </div>
+                        <div class="suggestion-card" onclick="selectSuggestion('정부가 경제 활성화를 위해 다가오는 다음 달에 전 국민 기본소득 100만 원 지급을 전격 추진한다는 뉴스의 신빙성 조사해줘')">
+                            <div class="suggestion-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                                    <polyline points="10 9 9 9 8 9"></polyline>
+                                </svg>
+                            </div>
+                            <div class="suggestion-content">
+                                <h4>정책 관련 보도 검증</h4>
+                                <p>"정부가 전 국민 기본소득 100만 원 지급을 전격 추진..."</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chat-input-wrapper">
+                <div class="chat-input-container">
+                    <textarea class="chat-input" id="chatInput" placeholder="이슈 기사 또는 검증하고 싶은 텍스트를 붙여넣으세요..." rows="1" onkeydown="handleInputKeydown(event)"></textarea>
+                    <button class="btn-send" id="sendBtn" onclick="sendChatMessage()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Dashboard (Right Column) -->
+        <section class="dashboard-section" id="dashboardSection">
+            <!-- Empty state shown before first report -->
+            <div class="empty-dashboard" id="emptyDashboard">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                <h3>판독 대기 중</h3>
+                <p>왼쪽 채팅창에 뉴스 분석 요청을 작성해 보세요.<br>여기에 실시간 팩트 등급과 정밀 대시보드가 표시됩니다.</p>
+            </div>
+
+            <!-- Real-time Dashboard View (hidden by default) -->
+            <div id="activeDashboard" style="display: none; flex-direction: column; gap: 1.75rem;">
+                <!-- 1. Factuality Card -->
+                <div class="dashboard-card" id="factualityCard">
+                    <div id="statusAlertTag" class="status-alert-tag"></div>
+                    <div class="dashboard-title">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        </svg>
+                        팩트 신뢰도 분석
+                    </div>
+                    <div class="gauge-container">
+                        <div class="svg-gauge">
+                            <svg viewBox="0 0 100 100">
+                                <circle class="gauge-bg" cx="50" cy="50" r="45"></circle>
+                                <circle class="gauge-progress" id="gaugeProgress" cx="50" cy="50" r="45"></circle>
+                            </svg>
+                            <div class="gauge-text">
+                                <span id="gaugePercentText">0</span>
+                                <span class="gauge-unit">%</span>
+                            </div>
+                        </div>
+                        <div class="gauge-info">
+                            <div class="gauge-label" id="factualityLabel">대기 중</div>
+                            <div class="gauge-desc" id="factualitySummary">기사의 실시간 교차 검증 점수입니다.</div>
+                        </div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-secondary);">주요 판단 근거</div>
+                        <ul class="reasons-list" id="reasonsList">
+                            <!-- Populated by JS -->
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 2. Bias Analysis Card -->
+                <div class="dashboard-card" id="biasCard">
+                    <div class="dashboard-title">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="4" y1="21" x2="4" y2="14"></line>
+                            <line x1="4" y1="10" x2="4" y2="3"></line>
+                            <line x1="12" y1="21" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12" y2="3"></line>
+                            <line x1="20" y1="21" x2="20" y2="16"></line>
+                            <line x1="20" y1="12" x2="20" y2="3"></line>
+                            <line x1="1" y1="14" x2="7" y2="14"></line>
+                            <line x1="9" y1="8" x2="15" y2="8"></line>
+                            <line x1="17" y1="16" x2="23" y2="16"></line>
+                        </svg>
+                        정치적 / 관점 편향성
+                    </div>
+                    <div class="bias-bar-wrapper" id="biasBarWrapper">
+                        <div class="bias-track-container">
+                            <div class="bias-track"></div>
+                            <div class="bias-marker" id="biasMarker"></div>
+                        </div>
+                        <div class="bias-axis-labels">
+                            <span id="biasLeftLabel">좌편향 (Liberal)</span>
+                            <span id="biasCenterLabel">중립 (Neutral)</span>
+                            <span id="biasRightLabel">우편향 (Conservative)</span>
+                        </div>
+                    </div>
+                    <div class="bias-description" id="biasExplanation">
+                        기사의 이념적 편향성과 단어 선택 등을 바탕으로 한 서술의 중립성 여부를 점수화하여 파악합니다.
+                    </div>
+                </div>
+
+                <!-- 3. Opposing Perspectives Card -->
+                <div class="dashboard-card">
+                    <div class="dashboard-title">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                        상반된 기사 및 교차 반론
+                    </div>
+                    <div class="opposing-list" id="opposingList">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Mobile View Dashboard Toggle -->
+    <button class="dashboard-toggle" id="dashboardToggleBtn" onclick="toggleMobileDashboard()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="9" y1="3" x2="9" y2="21"></line>
+        </svg>
+    </button>
+
+    <script>
+        const chatHistory = document.getElementById('chatHistory');
+        const chatInput = document.getElementById('chatInput');
+        const sendBtn = document.getElementById('sendBtn');
+        
+        const settingsToggleBtn = document.getElementById('settingsToggleBtn');
+        const settingsPanel = document.getElementById('settingsPanel');
+        const apiKeyInput = document.getElementById('apiKey');
+        const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+        
+        const welcomeView = document.getElementById('welcomeView');
+        const emptyDashboard = document.getElementById('emptyDashboard');
+        const activeDashboard = document.getElementById('activeDashboard');
+        const dashboardSection = document.getElementById('dashboardSection');
+        
+        // Dashboard metric elements
+        const gaugeProgress = document.getElementById('gaugeProgress');
+        const gaugePercentText = document.getElementById('gaugePercentText');
+        const factualityLabel = document.getElementById('factualityLabel');
+        const reasonsList = document.getElementById('reasonsList');
+        const biasMarker = document.getElementById('biasMarker');
+        const biasExplanation = document.getElementById('biasExplanation');
+        const opposingList = document.getElementById('opposingList');
+        const factualityCard = document.getElementById('factualityCard');
+        const statusAlertTag = document.getElementById('statusAlertTag');
+        const biasCard = document.getElementById('biasCard');
+        const biasBarWrapper = document.getElementById('biasBarWrapper');
+
+        const biasLeftLabel = document.getElementById('biasLeftLabel');
+        const biasCenterLabel = document.getElementById('biasCenterLabel');
+        const biasRightLabel = document.getElementById('biasRightLabel');
+
+        let chatMessages = [];
+        
+        // Auto-resize input text area
+        chatInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight - 10) + 'px';
+        });
+
+        // Initialize Settings
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedApiKey = localStorage.getItem('veritas_gemini_apikey') || '';
+            apiKeyInput.value = savedApiKey;
+
+            // If API key is empty, show settings panel right away to remind user
+            if (!savedApiKey) {
+                settingsPanel.style.display = 'flex';
+            }
+        });
+
+        // Settings toggle click
+        settingsToggleBtn.addEventListener('click', () => {
+            const isDisplayed = settingsPanel.style.display === 'flex';
+            settingsPanel.style.display = isDisplayed ? 'none' : 'flex';
+        });
+
+        // Save Settings
+        saveSettingsBtn.addEventListener('click', () => {
+            localStorage.setItem('veritas_gemini_apikey', apiKeyInput.value.trim());
+            settingsPanel.style.display = 'none';
+            alert('설정이 저장되었습니다.');
+        });
+
+        // Auto submit suggestion claims
+        function selectSuggestion(text) {
+            chatInput.value = text;
+            chatInput.style.height = 'auto';
+            chatInput.focus();
+            sendChatMessage();
+        }
+
+        // Enter key to submit
+        function handleInputKeydown(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendChatMessage();
+            }
+        }
+
+        // Toggle mobile view dashboard drawer
+        function toggleMobileDashboard() {
+            dashboardSection.classList.toggle('active');
+        }
+
+        // Helper: Simple Markdown Parser
+        function parseMarkdown(text) {
+            // Bullet points
+            let formatted = text.replace(/^\s*[-*+]\s+(.+)$/gm, '<li>$1</li>');
+            formatted = formatted.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+            
+            // Bold
+            formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            
+            // Inline Code
+            formatted = formatted.replace(/`(.*?)`/g, '<code>$1</code>');
+            
+            // Replace linebreaks with p tags
+            const paragraphs = formatted.split(/\n{2,}/);
+            formatted = paragraphs.map(p => {
+                if (p.trim().startsWith('<ul>') || p.trim().startsWith('<li>')) return p;
+                return `<p>${p.replace(/\n/g, '<br>')}</p>`;
+            }).join('');
+            
+            return formatted;
+        }
+
+        // Append message to UI log
+        function appendMessage(role, content, isHtml = false) {
+            if (welcomeView) {
+                welcomeView.style.display = 'none';
+            }
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+            
+            const avatar = document.createElement('div');
+            avatar.className = 'avatar';
+            avatar.textContent = role === 'user' ? 'U' : 'V';
+            
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble markdown-content';
+            
+            if (isHtml) {
+                bubble.innerHTML = content;
+            } else {
+                bubble.innerHTML = parseMarkdown(content);
+            }
+            
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(bubble);
+            chatHistory.appendChild(messageDiv);
+            
+            // Scroll to bottom
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        // Trigger dynamic loading messages while analyzing
+        function createLoadingBubble() {
+            if (welcomeView) welcomeView.style.display = 'none';
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message assistant';
+            messageDiv.id = 'activeLoadingMessage';
+            
+            const avatar = document.createElement('div');
+            avatar.className = 'avatar';
+            avatar.textContent = 'V';
+            
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble loading-bubble';
+            
+            const spinnerWrapper = document.createElement('div');
+            spinnerWrapper.className = 'loading-spinner-wrapper';
+            
+            const spinner = document.createElement('div');
+            spinner.className = 'spinner';
+            
+            const statusText = document.createElement('span');
+            statusText.className = 'loading-status-text';
+            statusText.id = 'loadingStatusText';
+            statusText.textContent = '뉴스 주장 분석 시작...';
+            
+            spinnerWrapper.appendChild(spinner);
+            spinnerWrapper.appendChild(statusText);
+            bubble.appendChild(spinnerWrapper);
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(bubble);
+            chatHistory.appendChild(messageDiv);
+            
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+
+            // Cycle status messages
+            const statuses = [
+                '주장 텍스트 핵심 키워드 분석 중...',
+                '교차 검증 및 기존 언론 보도 매칭 중...',
+                '출처 신뢰성 및 논거 타당성 분석 중...',
+                '정치적 편향성 및 어조 분석 중...',
+                '상반된 관점의 뉴스 및 반론 기사 탐색 중...',
+                '판독 보고서 생성 중...'
+            ];
+            
+            let statusIndex = 0;
+            const statusInterval = setInterval(() => {
+                const textEl = document.getElementById('loadingStatusText');
+                if (textEl && statusIndex < statuses.length) {
+                    textEl.textContent = statuses[statusIndex++];
+                }
+            }, 2500);
+
+            return {
+                remove: () => {
+                    clearInterval(statusInterval);
+                    const el = document.getElementById('activeLoadingMessage');
+                    if (el) el.remove();
+                }
+            };
+        }
+
+        // Send Message Handler
+        async function sendChatMessage() {
+            const apiKey = apiKeyInput.value.trim();
+            if (!apiKey) {
+                settingsPanel.style.display = 'flex';
+                alert('Gemini API Key를 입력하고 설정을 저장해주세요.');
+                return;
+            }
+
+            const text = chatInput.value.trim();
+            if (!text) return;
+
+            // Lock input
+            chatInput.value = '';
+            chatInput.style.height = 'auto';
+            chatInput.disabled = true;
+            sendBtn.disabled = true;
+
+            // Show user message
+            appendMessage('user', text);
+            
+            // Push query context
+            chatMessages.push({ role: 'user', content: text });
+
+            // Show loading status
+            const loadingCtrl = createLoadingBubble();
+
+            try {
+                // Construct system prompt instructing LLM to output structured JSON
+                const systemPrompt = `당신은 전문 뉴스 팩트체커이자 언론 분석가입니다.
+현재 분석하는 시점은 **2026년 7월 2일**입니다. 모든 뉴스, 주장, 인물 소문, 정치/사회적 이슈의 팩트체크 및 신뢰성 검증은 반드시 **2026년 7월 현재 시점의 최신 사실관계와 정보**를 기준 근거로 실시간 비교하여 분석해 주십시오. 과거에는 옳았으나 현재는 거짓이 된 사건, 혹은 반대로 사실로 규명된 사안이 있다면 그 변화를 명확하게 밝혀 근거를 작성해 주세요. 구글 검색 도구가 활성화되어 있으므로, 필요시 적극적으로 구글 검색을 활용하여 사실 여부를 교차 검증하고 그 근거를 답변에 반영해야 합니다.
+
+사용자가 제공하는 뉴스 기사, 주장, 소문 등을 분석하여 다음 정보를 JSON 형식으로만 응답해야 합니다. 다른 서두나 맺음말 없이 오직 순수한 JSON 객체 하나만 반환하세요. 마크다운 코드 블록(\`\`\`json ... \`\`\`)을 사용해도 좋습니다.
+
+JSON 구조:
+{
+  "chat_response": "사용자에게 이 뉴스의 팩트체크 결과와 세부 내용을 친절하게 설명하는 마크다운 포맷의 한국어 답변 (공백 포함 최소 300자 이상). 팩트 판독 근거와 주요 논점을 상세히 서술할 것. 2026년 7월 현재 정보와 과거 정보를 교차비교한 분석 내용을 꼭 담아줄 것.",
+  "factuality_score": 0에서 100 사이의 정수 (0: 완전한 거짓/음모론, 50: 판단 보류/반반/근거부족, 100: 완벽한 사실/교차검증완료),
+  "factuality_label": "완전한 거짓", "대체로 거짓", "판단 유보", "대체로 사실", "완전한 사실" 중 하나,
+  "factuality_reasons": ["2026년 현재 기준 사실 판별 근거 1", "2026년 현재 기준 사실 판별 근거 2"],
+  "is_political": true 또는 false (명백히 정치인, 정당, 선거, 특정 정책 논쟁, 또는 진보/보수 진영 간의 직접적인 이념 대립에 해당하는 경우에만 true로 지정하십시오. 그 외 백신 나노칩, 기후변화 과학 정보, 단순 기업 소식, 대중 음모론, 연예계 소문 등은 반드시 false로 지정해야 합니다.),
+  "bias_direction": "좌편향", "우편향", "중립", "기타편향" 또는 "해당없음" ("is_political"이 false라면 반드시 "해당없음"으로 지정),
+  "bias_score": -100(강한 좌편향/진보)부터 +100(강한 우편향/보수) 사이의 정수 (정치적 주장이 아닐 경우 0으로 지정),
+  "bias_explanation": "해당 기사나 주장의 관점 편향성 설명 (정치적 주장이 아닐 경우 '정치적 이념 논쟁 대상이 아닌 비정치적 정보입니다' 등의 취지로 설명)",
+  "opposing_articles": [
+    {
+      "title": "반대 관점의 기사 제목 또는 예상되는 반박 보도 타이틀",
+      "source": "해당 보도를 다룰 만한 대표적인 언론사 유형 또는 출처 (예: 진보 성향 매체, 보수 성향 매체, 팩트체크 기관 등)",
+      "summary": "반대 관점 기사의 주요 논지와 주장 요약 (주요 반박 팩트 포함)",
+      "search_query": "네이버나 구글에 검색하여 실제 관련 반박 기사를 찾을 수 있는 최적의 검색어 (예: '코로나 백신 부작용 진실 팩트체크')"
+    }
+  ]
+}
+
+주의사항:
+1. 답변은 반드시 유효한 JSON이어야 하며, 한국어로 작성하세요.
+2. 반대되는 기사나 의견이 존재하지 않는 경우에도, 합리적이고 객관적인 반대 관점이나 우려의 목소리를 가상 기사 형태로 채워서 검색 쿼리와 함께 제공하세요.
+3. 기사가 완벽한 사실이라 하더라도 이에 대한 우려, 부작용, 반대 진영의 비판 논리를 "반대 관점 기사"에 기재하세요.`;
+
+                // Map messages to Gemini formats
+                const geminiContents = chatMessages.map(msg => ({
+                    role: msg.role === 'user' ? 'user' : 'model',
+                    parts: [{ text: msg.content }]
+                }));
+
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        contents: geminiContents,
+                        systemInstruction: {
+                            parts: [{ text: systemPrompt }]
+                        },
+                        generationConfig: {
+                            // responseMimeType is omitted because it is incompatible with tools (Google Search grounding)
+                        },
+                        tools: [
+                            {
+                                googleSearch: {}
+                            }
+                        ]
+                    })
+                });
+
+                // Clear loading
+                loadingCtrl.remove();
+
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.error?.message || `HTTP 에러: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                if (data.candidates && data.candidates.length > 0 && data.candidates[0].content && data.candidates[0].content.parts.length > 0) {
+                    const rawReply = data.candidates[0].content.parts[0].text;
+                    
+                    // Parse structured JSON
+                    const parsed = parseAIResponse(rawReply);
+                    
+                    // Add AI text answer to chat bubble
+                    appendMessage('assistant', parsed.chat_response);
+                    
+                    // Update model context message history (keep textual answer)
+                    chatMessages.push({ role: 'assistant', content: parsed.chat_response });
+                    
+                    // Keep conversation length under control (last 8 messages)
+                    if (chatMessages.length > 8) {
+                        chatMessages.shift();
+                        chatMessages.shift();
+                    }
+
+                    // Update UI Dashboard metrics
+                    updateDashboard(parsed);
+
+                } else {
+                    throw new Error('응답 형식에 candidates가 비어 있거나 올바르지 않습니다.');
+                }
+
+            } catch (error) {
+                console.error(error);
+                loadingCtrl.remove();
+                appendMessage('assistant', `⚠️ **오류가 발생했습니다:** ${error.message}`);
+            } finally {
+                chatInput.disabled = false;
+                sendBtn.disabled = false;
+                chatInput.focus();
+            }
+        }
+
+        // Clean & Parse AI Response
+        function parseAIResponse(text) {
+            let cleanText = text.trim();
+            
+            // 1. Try extracting code block contents
+            if (cleanText.startsWith('```')) {
+                const match = cleanText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+                if (match) {
+                    cleanText = match[1].trim();
+                }
+            }
+            
+            // 2. Find bounding curly braces
+            const firstBrace = cleanText.indexOf('{');
+            const lastBrace = cleanText.lastIndexOf('}');
+            if (firstBrace !== -1 && lastBrace !== -1) {
+                cleanText = cleanText.substring(firstBrace, lastBrace + 1);
+            }
+            
+            // 3. Fix common JSON formatting errors
+            // Remove trailing commas inside objects/arrays
+            cleanText = cleanText.replace(/,\s*([\]}])/g, '$1');
+            
+            // Fix unescaped newlines inside string values (replace with \n)
+            cleanText = cleanText.replace(/"([^"]*)"/g, (match, p1) => {
+                return '"' + p1.replace(/\n/g, '\\n') + '"';
+            });
+            
+            try {
+                return JSON.parse(cleanText);
+            } catch (e) {
+                console.warn("JSON parsing failed, trying heuristic regex recovery", e);
+                
+                // Heuristic regex recovery
+                const result = {
+                    chat_response: text, // Fallback to raw text
+                    factuality_score: 50,
+                    factuality_label: "판단 유보",
+                    factuality_reasons: [],
+                    is_political: false,
+                    bias_direction: "해당없음",
+                    bias_score: 0,
+                    bias_explanation: "정치적 이념 논쟁 대상이 아닙니다.",
+                    opposing_articles: []
+                };
+                
+                // Heuristic: Extract factuality score
+                const scoreMatch = text.match(/"factuality_score"\s*:\s*(\d+)/i) || 
+                                   text.match(/factuality_score\s*:\s*(\d+)/i) ||
+                                   text.match(/신뢰도\s*:\s*(\d+)/i) ||
+                                   text.match(/(\d+)%/);
+                if (scoreMatch) {
+                    result.factuality_score = parseInt(scoreMatch[1]);
+                }
+                
+                // Heuristic: Extract factuality label
+                const labelMatch = text.match(/"factuality_label"\s*:\s*["']([^"']+)["']/i) ||
+                                   text.match(/factuality_label\s*:\s*["']([^"']+)["']/i);
+                if (labelMatch) {
+                    result.factuality_label = labelMatch[1];
+                } else {
+                    if (text.includes("완전한 거짓") || result.factuality_score < 15) {
+                        result.factuality_label = "완전한 거짓";
+                    } else if (text.includes("대체로 거짓") || result.factuality_score < 40) {
+                        result.factuality_label = "대체로 거짓";
+                    } else if (text.includes("대체로 사실") || result.factuality_score >= 70) {
+                        result.factuality_label = "대체로 사실";
+                    } else if (text.includes("완전한 사실") || result.factuality_score >= 90) {
+                        result.factuality_label = "완전한 사실";
+                    }
+                }
+                
+                // Heuristic: Extract reasons
+                const reasonsMatch = text.match(/"factuality_reasons"\s*:\s*\[([\s\S]*?)\]/i);
+                if (reasonsMatch) {
+                    const items = reasonsMatch[1].match(/"([^"]+)"/g);
+                    if (items) {
+                        result.factuality_reasons = items.map(item => item.replace(/"/g, ''));
+                    }
+                }
+                if (result.factuality_reasons.length === 0) {
+                    // Try parsing bullet points from text
+                    const bullets = text.match(/^\s*[-*+•]\s+(.+)$/gm);
+                    if (bullets) {
+                        result.factuality_reasons = bullets.map(b => b.replace(/^\s*[-*+•]\s+/, '').trim()).slice(0, 3);
+                    } else {
+                        result.factuality_reasons = ["최근 뉴스 보도 분석 및 교차 검증 진행 완료."];
+                    }
+                }
+                
+                // Heuristic: is_political
+                const isPolMatch = text.match(/"is_political"\s*:\s*(true|false)/i);
+                if (isPolMatch) {
+                    result.is_political = isPolMatch[1].toLowerCase() === 'true';
+                } else {
+                    result.is_political = text.includes("정치") || text.includes("이념") || text.includes("편향");
+                }
+                
+                // Heuristic: bias score
+                const biasScoreMatch = text.match(/"bias_score"\s*:\s*(-?\d+)/i) || text.match(/bias_score\s*:\s*(-?\d+)/i);
+                if (biasScoreMatch) {
+                    result.bias_score = parseInt(biasScoreMatch[1]);
+                }
+                
+                // Heuristic: bias explanation
+                const biasExpMatch = text.match(/"bias_explanation"\s*:\s*["']([^"']+)["']/i);
+                if (biasExpMatch) {
+                    result.bias_explanation = biasExpMatch[1];
+                }
+                
+                // Check if chat response needs formatting (if raw output contains json keys, keep clean text)
+                if (text.includes('"chat_response"') || text.includes('"factuality_score"')) {
+                    const chatMatch = text.match(/"chat_response"\s*:\s*["']([\s\S]*?)["'],\s*"/);
+                    if (chatMatch) {
+                        result.chat_response = chatMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
+                    } else {
+                        result.chat_response = "뉴스 분석 결과입니다. 오른쪽 대시보드의 실시간 분석 차트 및 근거 목록을 참고해 주세요.";
+                    }
+                }
+                
+                return result;
+            }
+        }
+
+        // Update the Dashboard visual metrics
+        function updateDashboard(data) {
+            emptyDashboard.style.display = 'none';
+            activeDashboard.style.display = 'flex';
+
+            // 1. Factuality score update
+            const score = data.factuality_score ?? 50;
+            
+            // Calculate SVG circle dashoffset. radius=45. circumference=2*PI*45 = 282.74
+            const circumference = 282.74;
+            const offset = circumference - (score / 100 * circumference);
+            
+            gaugeProgress.style.strokeDashoffset = offset;
+            
+            // Pulse count animation
+            animateCount(gaugePercentText, parseInt(gaugePercentText.textContent) || 0, score, 800);
+            
+            // Reset status classes
+            factualityCard.className = 'dashboard-card';
+            statusAlertTag.className = 'status-alert-tag';
+            
+            // Determine gauge color and visual style based on score (polar differences)
+            let color = 'var(--warning)';
+            let filterGlow = 'drop-shadow(0 0 10px var(--warning-glow))';
+            let alertClass = 'warning';
+            let alertText = `⚠️ [주의] 정보 보류 및 양론 대립 (${score}%)`;
+
+            if (score >= 70) {
+                color = 'var(--success)';
+                filterGlow = 'drop-shadow(0 0 15px var(--success-glow))';
+                alertClass = 'success';
+                alertText = `🛡️ [보호] 신뢰할 수 있는 사실 정보 (${score}%)`;
+                factualityCard.classList.add('status-success');
+            } else if (score < 40) {
+                color = 'var(--danger)';
+                filterGlow = 'drop-shadow(0 0 15px var(--danger-glow))';
+                alertClass = 'danger';
+                alertText = `🚨 [위험] 허위 정보 가능성 매우 높음 (${score}%)`;
+                factualityCard.classList.add('status-danger');
+            } else {
+                factualityCard.classList.add('status-warning');
+            }
+            
+            statusAlertTag.classList.add(alertClass);
+            statusAlertTag.textContent = alertText;
+            
+            gaugeProgress.style.stroke = color;
+            gaugeProgress.style.filter = filterGlow;
+            factualityLabel.style.color = color;
+            factualityLabel.textContent = data.factuality_label || '분석 완료';
+
+            // Clear & populate reasons
+            reasonsList.innerHTML = '';
+            const reasons = data.factuality_reasons || [];
+            reasons.forEach(reason => {
+                const li = document.createElement('li');
+                li.textContent = reason;
+                reasonsList.appendChild(li);
+            });
+
+            // 2. Bias score update (-100 to +100)
+            const isPol = data.is_political ?? true;
+            
+            if (isPol === false || data.bias_direction === "해당없음") {
+                biasBarWrapper.style.display = 'none';
+                biasExplanation.textContent = data.bias_explanation || '이 사안은 정치적/이념적 쟁점이 없는 비정치적 정보입니다.';
+            } else {
+                biasBarWrapper.style.display = 'block';
+                biasMarker.style.display = 'block';
+                
+                const biasVal = data.bias_score ?? 0;
+                // Map -100 to 100 onto 0% to 100% position
+                const biasPercentage = ((biasVal + 100) / 200) * 100;
+                biasMarker.style.left = `${biasPercentage}%`;
+                
+                // Set text highlights on scale labels
+                biasLeftLabel.className = '';
+                biasCenterLabel.className = '';
+                biasRightLabel.className = '';
+                biasLeftLabel.style.display = 'inline';
+                biasRightLabel.style.display = 'inline';
+                biasCenterLabel.style.display = 'inline';
+
+                if (biasVal < -25) {
+                    biasLeftLabel.className = 'active-left';
+                    biasLeftLabel.textContent = `좌편향 (${Math.abs(biasVal)}%)`;
+                    biasRightLabel.textContent = '우편향 (Conservative)';
+                } else if (biasVal > 25) {
+                    biasRightLabel.className = 'active-right';
+                    biasRightLabel.textContent = `우편향 (${biasVal}%)`;
+                    biasLeftLabel.textContent = '좌편향 (Liberal)';
+                } else {
+                    biasCenterLabel.className = 'active-neutral';
+                    biasCenterLabel.textContent = '중립 (Neutral)';
+                    biasLeftLabel.textContent = '좌편향 (Liberal)';
+                    biasRightLabel.textContent = '우편향 (Conservative)';
+                }
+
+                biasExplanation.textContent = data.bias_explanation || '';
+            }
+
+            // 3. Opposing articles update
+            opposingList.innerHTML = '';
+            const articles = data.opposing_articles || [];
+            
+            if (articles.length === 0) {
+                opposingList.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.8rem; padding:1rem 0;">해당 뉴스에 반대되거나 대립하는 의견/기사가 아직 제시되지 않았습니다.</div>`;
+            } else {
+                articles.forEach(article => {
+                    const card = document.createElement('div');
+                    card.className = 'opposing-card';
+                    
+                    // Generate links
+                    const queryEncoded = encodeURIComponent(article.search_query || article.title);
+                    const googleUrl = `https://www.google.com/search?q=${queryEncoded}`;
+                    const naverUrl = `https://search.naver.com/search.naver?query=${queryEncoded}`;
+                    
+                    card.innerHTML = `
+                        <div class="opposing-meta">
+                            <span class="opposing-source">${article.source || '반대 의견'}</span>
+                        </div>
+                        <div class="opposing-title">${article.title}</div>
+                        <div class="opposing-summary">${article.summary || ''}</div>
+                        <div class="opposing-actions">
+                            <a href="${googleUrl}" target="_blank" class="btn-search">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                                구글 검색
+                            </a>
+                            <a href="${naverUrl}" target="_blank" class="btn-search">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                                네이버 검색
+                            </a>
+                        </div>
+                    `;
+                    opposingList.appendChild(card);
+                });
+            }
+        }
+
+        // Animate counter text
+        function animateCount(element, start, end, duration) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                element.textContent = Math.floor(progress * (end - start) + start);
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                } else {
+                    element.textContent = end;
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+    </script>
+</body>
+</html>
