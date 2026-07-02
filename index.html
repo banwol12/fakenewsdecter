@@ -1176,8 +1176,23 @@
         });
 
         // Initialize Settings
-        document.addEventListener('DOMContentLoaded', () => {
-            const savedApiKey = localStorage.getItem('veritas_gemini_apikey') || '';
+        document.addEventListener('DOMContentLoaded', async () => {
+            let savedApiKey = localStorage.getItem('veritas_gemini_apikey') || '';
+
+            // Try to load key from local config.json file
+            try {
+                const response = await fetch('config.json');
+                if (response.ok) {
+                    const config = await response.json();
+                    if (config && config.GEMINI_API_KEY) {
+                        savedApiKey = config.GEMINI_API_KEY;
+                        localStorage.setItem('veritas_gemini_apikey', savedApiKey);
+                    }
+                }
+            } catch (err) {
+                console.log('Local config.json load skipped or failed. Using localStorage.', err);
+            }
+
             apiKeyInput.value = savedApiKey;
 
             // If API key is empty, show settings panel right away to remind user
